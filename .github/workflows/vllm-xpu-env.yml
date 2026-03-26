@@ -22,14 +22,21 @@ jobs:
       - name: Checkout fork repo
         uses: actions/checkout@v4
 
-      - name: Derive image tags
+      - name: Compute image name + tags (normalize owner to lowercase)
         id: meta
+        shell: bash
         run: |
-          OWNER="${{ github.repository_owner }}"
-          IMAGE="${{ env.REGISTRY }}/${OWNER}/${{ env.IMAGE_NAME }}"
+          OWNER_RAW="${{ github.repository_owner }}"
+          OWNER_LC="$(echo "${OWNER_RAW}" | tr '[:upper:]' '[:lower:]')"
+
+          IMAGE="${{ env.REGISTRY }}/${OWNER_LC}/${{ env.IMAGE_NAME }}"
+
+          echo "owner_lc=${OWNER_LC}" >> "$GITHUB_OUTPUT"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "sha_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
           echo "latest_tag=latest" >> "$GITHUB_OUTPUT"
+
+          echo "Using GHCR image: ${IMAGE}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
