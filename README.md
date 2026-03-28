@@ -70,6 +70,66 @@ Visit our [documentation](https://docs.vllm.ai/en/latest/) to learn more.
 - [Quickstart](https://docs.vllm.ai/en/latest/getting_started/quickstart.html)
 - [List of Supported Models](https://docs.vllm.ai/en/latest/models/supported_models.html)
 
+Install vLLM with `Docker`
+```bash
+version: "3.9"
+
+services:
+  vllm-xpu:
+    image: ghcr.io/YOUR_USERNAME/vllm-xpu:latest
+    container_name: vllm-xpu
+    restart: unless-stopped
+
+    # 🔹 Required for vLLM shared memory usage
+    shm_size: "4g"
+
+    # 🔹 Intel GPU access
+    devices:
+      - /dev/dri:/dev/dri
+
+    # 🔹 Needed for iGPU + oneAPI runtime
+    group_add:
+      - video
+      - render
+
+    environment:
+      # ---- vLLM / XPU ----
+      VLLM_DEVICE: "xpu"
+      SYCL_CACHE_PERSISTENT: "1"
+
+      # ---- Stability on Intel iGPU ----
+      VLLM_USE_TRITON: "0"
+      VLLM_ATTENTION_BACKEND: "FLASHINFER"
+      VLLM_WORKER_MULTIPROC_METHOD: "spawn"
+
+      # ---- Memory pressure control (IMPORTANT on iGPU) ----
+      VLLM_GPU_MEMORY_UTILIZATION: "0.85"
+      VLLM_MAX_NUM_SEQS: "16"
+
+      # Optional: reduce fragmentation
+      SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS: "1"
+
+    volumes:
+      # 🔹 Model cache (recommended)
+      - vllm-models:/models
+
+    ports:
+      - "8000:8000"
+
+    command: >
+      python -m vllm.entrypoints.openai.api_server
+      --model /models/your-model
+      --dtype auto
+      --device xpu
+      --max-model-len 4096
+      --trust-remote-code
+      --host 0.0.0.0
+      --port 8000
+
+volumes:
+  vllm-models:
+```
+
 ## Contributing
 
 We welcome and value any contributions and collaborations.
